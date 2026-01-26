@@ -1,3 +1,4 @@
+// frontend/src/services/api.ts
 import axios, { AxiosInstance, AxiosError } from 'axios'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
@@ -12,20 +13,21 @@ class ApiService {
         'Content-Type': 'application/json',
       },
       timeout: 30000,
+      withCredentials: false, // مهم جداً!
     })
 
-    if (import.meta.env.DEV) {
-      console.log('API Base URL:', API_URL);
-    }
+    // Log API URL in development
+    console.log('=== API Configuration ===');
+    console.log('Base URL:', API_URL);
+    console.log('Environment:', import.meta.env.MODE);
+    console.log('========================');
 
     this.api.interceptors.request.use(
       (config) => {
-        if (import.meta.env.DEV) {
-          console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`, {
-            params: config.params,
-            data: config.data
-          });
-        }
+        console.log(`🔵 API Request: ${config.method?.toUpperCase()} ${config.url}`, {
+          params: config.params,
+          data: config.data
+        });
         
         const token = localStorage.getItem('token')
         if (token) {
@@ -34,29 +36,32 @@ class ApiService {
         return config
       },
       (error) => {
+        console.error('❌ Request Error:', error);
         return Promise.reject(error)
       }
     )
 
     this.api.interceptors.response.use(
       (response) => {
-        if (import.meta.env.DEV) {
-          console.log(`API Response: ${response.config.url}`, response.data);
-        }
+        console.log(`✅ API Response: ${response.config.url}`, {
+          status: response.status,
+          data: response.data
+        });
         return response;
       },
       (error: AxiosError) => {
-        if (import.meta.env.DEV) {
-          console.error('API Error:', {
-            url: error.config?.url,
-            status: error.response?.status,
-            data: error.response?.data
-          });
-        }
+        console.error('❌ API Error:', {
+          url: error.config?.url,
+          method: error.config?.method,
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          data: error.response?.data,
+          message: error.message
+        });
         
         if (error.response?.status === 401) {
           localStorage.removeItem('token')
-          window.location.href = '/'
+          // لا تعمل redirect تلقائي في حالة الخطأ
         }
         return Promise.reject(error)
       }
